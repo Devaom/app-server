@@ -1,34 +1,95 @@
+require('dotenv').config()
 var mongoose = require('mongoose');
 var News = require('./models/news');
+var AWS = require('aws-sdk');
 
 mongoose.connect(process.env.MONGO_URI)
 	.then(() => console.log('Successfully connected to mongodb'))
 	.catch(e => console.error(e));
 
+// 현재는 바로 ES로 적재하는 시나리오
 exports.postNews = function(req, res){
 	console.log('postNews called');
 	var news = new News();
+	
+	news.article_id = req.body.article_id;
+	news.article_url = req.body.article_url;
+	news.redirect_url = req.body.redirect_url;
+	news.origin_url = req.body.origin_url;
 	news.title = req.body.title;
-	news.pubDate = req.body.pubDate;
-	news.pubTime = req.body.pubTime;
-	news.body = req.body.body;
+	news.body_html = req.body.body_html;
+	news.time = req.body.time;
+	news.provider = req.body.provider;
 	news.reporter = req.body.reporter;
-	news.press = req.body.press;
+	news.category = req.body.category;
 	news.relatedStocks = req.body.relatedStocks;
 
-	news.save(function(err, obj){
-		if(err){
-			console.error(err);
-			return res.json({success: false});
-			//var result = {result: 0};
-			//return result;
-		} else{
-			//var result = {result: 1};
-			//return result;
-			return res.json({success: true, god: obj});
-		}
-	});
+    return new Promise(function(resolve, reject){
+		news.save(function(err, obj){
+			if(err){
+				reject({
+					success: false,
+					error: err
+				});
+				//reject(err);
+			} else{
+				// activemq로 product해야함. 현재는 그냥 바로 ES로 하기로.
+				//return res.json({success: true, god: obj});
+				resolve(obj);
+			}
+		});
+	})
+    .then(function(obj){
+		// ES에 인덱싱
+		// 인덱싱 되었다는 응답을 받고나서 넘겨주어야 함
+		var endpoint = new AWS.Endpoint(process.env.ES_DOMAIN)
+		var request = new AWS.HttpRequest(endpoint, process.env.ES_REGION);
+		request.method = 'PUT';
+		request.path += process.env.ES_INDEX + '/' + process.env.ES_TYPE + '/' + obj._id;
+		request.body = JSON.stringify(req.body);
+		request.headers['host'] = process.env.ES_DOMAIN;
+		request.headers['Content-Type'] = 'application/json';
+		
+		var client = new AWS.HttpClient();
+		client.handleRequest(request, null, function(response) {
+			var responseBody = '';
+			response.on('data', function(chunk) {
+				responseBody += chunk;
+			});
+			response.on('end', function(chunk) {
+
+				var es_response = {
+					elasticsearch_response: {
+						statusCode: response.statusCode,
+						statusMessage: response.statusMessage,
+						responseBody: responseBody
+					}
+				}
+
+				if(response.statusCode >= 300) {
+					es_response = false;
+					reject(es_response);
+				} else { 
+					es_response.success = true;
+					return res.json(es_response);
+				}
+
+			});
+		}, function(err) {
+			var es_response = {
+				success: false,
+				elasticsearch_response: err
+			}
+			reject(es_response);
+		});
+    })
+	.catch(function(err){
+		console.error(err);
+		return res.json(err);
+	})
 }
+
+/////////////////// 요 아래는 나중에 필드값 수정 필요! ////////
 
 exports.putNews = function(req, res){
 	News.findById(req.params.news_id, function(err, news){
