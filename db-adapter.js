@@ -57,7 +57,6 @@ exports.postNews = function(req, res){
 				responseBody += chunk;
 			});
 			response.on('end', function(chunk) {
-
 				var es_response = {
 					elasticsearch_response: {
 						statusCode: response.statusCode,
@@ -65,15 +64,13 @@ exports.postNews = function(req, res){
 						responseBody: responseBody
 					}
 				}
-
 				if(response.statusCode >= 300) {
-					es_response = false;
+					es_response.success = false;
 					reject(es_response);
 				} else { 
 					es_response.success = true;
 					return res.json(es_response);
 				}
-
 			});
 		}, function(err) {
 			var es_response = {
