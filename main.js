@@ -53,3 +53,4 @@ app.delete('/news/:news_id', function(req, res){
 app.listen(port, function(){
 	console.log('Express server has started on port ' + port);
 });
+// end of the code
