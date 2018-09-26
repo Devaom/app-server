@@ -1,5 +1,5 @@
 require('dotenv').config();
-require('./index-agent');
+//require('./index-agent');
 //require('./analysis-agent');
 
 var express = require('express');

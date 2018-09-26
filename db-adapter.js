@@ -7,6 +7,43 @@ mongoose.connect(process.env.MONGO_URI)
 	.then(() => console.log('Successfully connected to mongodb'))
 	.catch(e => console.error(e));
 
+/*
+// MONGODB 적재 -> 'es-index' queue에 publish하는 설계상의 시나리오
+exports.postNews2 = function(req, res){
+    console.log('postNews2 called!');
+
+	var news = new News();
+	news.article_id = req.body.article_id;
+	news.article_url = req.body.article_url;
+	news.redirect_url = req.body.redirect_url;
+	news.origin_url = req.body.origin_url;
+	news.title = req.body.title;
+	news.body_html = req.body.body_html;
+	news.time = req.body.time;
+	news.provider = req.body.provider;
+	news.reporter = req.body.reporter;
+	news.category = req.body.category;
+	news.relatedStocks = req.body.relatedStocks;
+
+	// MONGODB에 적재하고,
+	// MONGODB에서 적재된 news의 _id를 받아온다.
+	// news의 _id를 queue에 발행한다.
+
+	return new Promise(function(resolve, reject){
+				news.save(function(err, obj){
+						if(err) {
+							reject({success: false,
+									error: err});
+						} else {
+							// publish to rabbitmq
+							resolve(obj);
+						}
+					});
+			})
+			.then() // 
+}
+*/
+
 // 현재는 바로 ES로 적재하는 시나리오
 exports.postNews = function(req, res){
 	console.log('postNews called');
@@ -33,7 +70,7 @@ exports.postNews = function(req, res){
 				});
 				//reject(err);
 			} else{
-				// activemq로 product해야함. 현재는 그냥 바로 ES로 하기로.
+				// activemq로 publish해야함. 현재는 그냥 바로 ES로 하기로.
 				//return res.json({success: true, god: obj});
 				resolve(obj);
 			}
