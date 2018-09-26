@@ -1,4 +1,7 @@
 require('dotenv').config();
+require('./index-agent');
+//require('./analysis-agent');
+
 var express = require('express');
 var app = express();
 var bodyParser = require('body-parser');
