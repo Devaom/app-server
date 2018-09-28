@@ -2,12 +2,14 @@ require('dotenv').config()
 var mongoose = require('mongoose');
 var News = require('./models/news');
 var AWS = require('aws-sdk');
+var amqp = require('amqplib/callback_api');
+var http = require('http');
+var mqAgent = require('./mq-agent');
 
 mongoose.connect(process.env.MONGO_URI)
 	.then(() => console.log('Successfully connected to mongodb'))
 	.catch(e => console.error(e));
 
-/*
 // MONGODB 적재 -> 'es-index' queue에 publish하는 설계상의 시나리오
 exports.postNews2 = function(req, res){
     console.log('postNews2 called!');
@@ -28,7 +30,6 @@ exports.postNews2 = function(req, res){
 	// MONGODB에 적재하고,
 	// MONGODB에서 적재된 news의 _id를 받아온다.
 	// news의 _id를 queue에 발행한다.
-
 	return new Promise(function(resolve, reject){
 				news.save(function(err, obj){
 						if(err) {
@@ -36,13 +37,77 @@ exports.postNews2 = function(req, res){
 									error: err});
 						} else {
 							// publish to rabbitmq
+							//obj._id = new Buffer(String(obj._id));
 							resolve(obj);
 						}
 					});
 			})
-			.then() // 
+			.then(function(obj){
+				// publish to es-index queue
+				//return mqAgent.publishQueuePromise('es-index', obj._id); // 추후에 처리해보기.
+				return new Promise(function(resolve, reject) {
+							amqp.connect(process.env.RABBITMQ_AMQP_DOMAIN, function(err, conn) {
+								if(err) {
+									console.log('an error occured while publishing to queue "es-index"');
+									console.log(err);
+								}
+								conn.createChannel(function(err, ch) {
+									if(err) {
+										console.log(err);
+										reject(err);
+									} else {
+										//var value = new Buffer(String(obj._id));
+										var value = new Buffer(String(obj._id));
+										resolve(ch.sendToQueue('es-index', value));
+									}
+								})
+							});
+						})
+			})
+			.then(function(test) {
+				console.log(test)
+				var response = {test_success: test};
+				return res.json(response);
+			})
+			.catch(function(error) {
+				console.log(error)
+				var response = {test_response: error};
+				return res.json(response);
+			});
 }
-*/
+
+// async/await 지원을 위한 function
+// newsId는 es-index queue에서 꺼내온 MongoDB의 _id
+// MongoDB에서 _id에 해당하는 news를 가져온다
+exports.getNewsFromMongoByIdPromise = function(news_id) {
+	var options = {
+		hostname: process.env.NGINX_URI,
+		port: '80',
+		path: '/api/news/' + news_id,
+		method: 'GET'
+	};
+
+	return new Promise(function(resolve, reject) {
+		http.request(options, function(response) {
+			var responseBody = '';
+			response.on('data', function(chunk){
+				responseBody += chunk;
+			});
+
+			response.on('end', function() {
+				console.log('MongoDB에서 받아온 responseBody: ' + String(responseBody));
+				responseBody = JSON.parse(responseBody);
+				responseBody.time = new Date(responseBody.time)
+										.toISOString()
+										.replace(/T/, ' ')
+										.replace(/\..+/, '')
+										.replace(/-/gi, '.')
+										.replace(/(\s\d\d:\d\d):\d\d/, '$1');
+				resolve(responseBody);
+			});
+		}).end();
+	})
+}
 
 // 현재는 바로 ES로 적재하는 시나리오
 exports.postNews = function(req, res){
