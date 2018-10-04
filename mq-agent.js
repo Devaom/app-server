@@ -7,7 +7,9 @@ var AWS = require('aws-sdk');
 var http = require('http');
 var dbAdapter = require('./db-adapter');
 var esAdapter = require('./es-adapter');
+var mqAdapter = require('./mq-adapter');
 
+/*
 function publishQueuePromise(queue, value) {
 	return new Promise(function(resolve, reject) {
 		amqp.connect(process.env.RABBITMQ_AMQP_DOMAIN, function(err, conn) {
@@ -29,6 +31,7 @@ function publishQueuePromise(queue, value) {
 		});
 	})
 }
+*/
 
 // index-agent
 amqp.connect(process.env.RABBITMQ_AMQP_DOMAIN, function(err, conn) {
@@ -54,7 +57,7 @@ amqp.connect(process.env.RABBITMQ_AMQP_DOMAIN, function(err, conn) {
 				if(es_response.body.data) es_response.body.data = new Buffer(es_response.body.data).toString();
 
 				// publish to spark-analysis queue
-				var queue_success = await publishQueuePromise('spark-analysis', news_id);
+				var queue_success = await mqAdapter.publishQueuePromise('spark-analysis', news_id);
 				if(queue_success) console.log("publish to 'spark-analysis' queue successfully.");
 				else console.log("publishing to 'spark-analysis' queue failed.");
 
@@ -88,6 +91,6 @@ amqp.connect(process.env.RABBITMQ_AMQP_DOMAIN, function(err, conn) {
 	});
 })
 
-exports.publishQueuePromise = publishQueuePromise;
+//exports.publishQueuePromise = publishQueuePromise;
 
 

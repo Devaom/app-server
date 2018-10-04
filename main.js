@@ -36,8 +36,9 @@ app.get('/news/:news_id', function(req, res){
 
 app.post('/news', function(req, res){
 	console.log('[POST /news] BODY: ' + JSON.stringify(req.body));
-	//dbAdapter.postNews2(req, res);
-	dbAdapter.postNews(req, res);
+	//dbAdapter.postNews3(req, res);
+	dbAdapter.postNews2(req, res);
+	//dbAdapter.postNews(req, res);
 	// 이후의 코드는 동기적 실행을 보장하지 않음. 유의
 });
 

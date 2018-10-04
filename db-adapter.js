@@ -4,11 +4,35 @@ var News = require('./models/news');
 var AWS = require('aws-sdk');
 var amqp = require('amqplib/callback_api');
 var http = require('http');
-var mqAgent = require('./mq-agent');
+//var mqAgent = require('./mq-agent');
+var mqAdapter = require('./mq-adapter');
+var mongoAdapter = require('./mongo-adapter');
 
 mongoose.connect(process.env.MONGO_URI)
 	.then(() => console.log('Successfully connected to mongodb'))
 	.catch(e => console.error(e));
+
+exports.postNews3 = async function(req, res) {
+	var news = new News();
+	news.article_id = req.body.article_id;
+	news.article_url = req.body.article_url;
+	news.redirect_url = req.body.redirect_url;
+	news.origin_url = req.body.origin_url;
+	news.title = req.body.title;
+	news.body_html = req.body.body_html;
+	news.time = req.body.time;
+	news.provider = req.body.provider;
+	news.reporter = req.body.reporter;
+	news.category = req.body.category;
+	news.relatedStocks = req.body.relatedStocks;
+
+	var mongo_saved_news = await mongoAdapter.insertNewsToMongoPromise(news);
+	var queue_success = await mqAdapter.publishQueuePromise('es-index', mongo_saved_news._id);
+	return res.json({
+		mongo_saved_news: mongo_saved_news,
+		queue_success: queue_success
+	});
+};
 
 // MONGODB 적재 -> 'es-index' queue에 publish하는 설계상의 시나리오
 exports.postNews2 = function(req, res){
@@ -30,6 +54,7 @@ exports.postNews2 = function(req, res){
 	// MONGODB에 적재하고,
 	// MONGODB에서 적재된 news의 _id를 받아온다.
 	// news의 _id를 queue에 발행한다.
+	
 	return new Promise(function(resolve, reject){
 				news.save(function(err, obj){
 						if(err) {
@@ -56,7 +81,6 @@ exports.postNews2 = function(req, res){
 										console.log(err);
 										reject(err);
 									} else {
-										//var value = new Buffer(String(obj._id));
 										var value = new Buffer(String(obj._id));
 										resolve(ch.sendToQueue('es-index', value));
 									}
