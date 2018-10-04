@@ -48,9 +48,11 @@ function addJobFlowStepsPromise(cluster_id, argv) {
 
 exports.addJobFlowStepsPromise = addJobFlowStepsPromise;
 
-var cluster_id = 'j-12KBV0SP33U4I';
-var argv = '실행 결과를 알고싶음';
+//var cluster_id = 'j-12KBV0SP33U4I';
+//var argv = '실행 결과를 알고싶음';
 
+/*
 addJobFlowStepsPromise(cluster_id, argv).then(function(data){
 	console.log('처리한 결과' + String(data));
 });
+*/

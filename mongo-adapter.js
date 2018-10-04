@@ -7,9 +7,6 @@ mongoose.connect(process.env.MONGO_URI)
 	.then(() => console.log('Successfully connected to MongoDB'))
 	.catch(e => console.error(e));
 
-// MongoDB에 save
-// return _id
-
 function insertNewsToMongoPromise(news) {
 	return new Promise(function(resolve, reject) {
 		news.save(function(error, saved_news) {
@@ -53,10 +50,6 @@ function getSingleNewsFromMongoByIdPromise(news_id) {
 		}).end();
 	});
 }
-
-// async/await 지원을 위한 function
-// newsId는 es-index queue에서 꺼내온 MongoDB의 _id
-// MongoDB에서 _id에 해당하는 news를 가져온다
 
 exports.insertNewsToMongoPromise = insertNewsToMongoPromise;
 exports.getSingleNewsFromMongoByIdPromise = getSingleNewsFromMongoByIdPromise;

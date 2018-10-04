@@ -23,6 +23,7 @@ exports.postNews = async function(req, res) {
 
 	var mongo_saved_news = await mongoAdapter.insertNewsToMongoPromise(news);
 	var queue_success = await mqAdapter.publishQueuePromise('es-index', mongo_saved_news._id);
+
 	return res.json({
 		mongo_saved_news: mongo_saved_news,
 		queue_success: queue_success

@@ -4,35 +4,11 @@
 require('dotenv').config();
 var amqp = require('amqplib/callback_api');
 var AWS = require('aws-sdk');
-var http = require('http');
 //var dbAdapter = require('./db-adapter');
 var mongoAdapter = require('./mongo-adapter');
 var esAdapter = require('./es-adapter');
 var mqAdapter = require('./mq-adapter');
-
-/*
-function publishQueuePromise(queue, value) {
-	return new Promise(function(resolve, reject) {
-		amqp.connect(process.env.RABBITMQ_AMQP_DOMAIN, function(err, conn) {
-			if(err) {
-				console.log("an error occured while publishing to '" + queue + "' queue: " + String(err));
-				reject();
-			}
-			
-			conn.createChannel(function(err, ch) {
-				if(err) {
-					console.log('an error occured while creating channel: ' + String(err));
-					reject();
-				} else {
-					var value = new Buffer(String(value)); // queue에 쏠때는 Buffer로 보내야 함
-					var success = ch.sendToQueue(queue, value);
-					resolve(success);
-				}
-			})
-		});
-	})
-}
-*/
+var emrAdapter = require('./emr-adapter');
 
 // index-agent
 amqp.connect(process.env.RABBITMQ_AMQP_DOMAIN, function(err, conn) {
@@ -83,15 +59,11 @@ amqp.connect(process.env.RABBITMQ_AMQP_DOMAIN, function(err, conn) {
 		ch.consume('spark-analysis', async function(msg) {
 			try {
 				// submitting to spark
-							
-
+				await emrAdapter.addJobFlowStepsPromise(process.env.EMR_CLUSTER_ID, /* argv 인자값(분석처리할 news_id) */ );
 			} catch (err) {
 				console.log('an error occured while submitting a job to spark after consuming: ' + String(err));
 			}
 		}, {noAck: true});
 	});
 })
-
-//exports.publishQueuePromise = publishQueuePromise;
-
 
