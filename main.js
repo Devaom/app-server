@@ -1,5 +1,5 @@
 require('dotenv').config();
-require('./mq-agent');
+//require('./mq-agent');
 
 var express = require('express');
 var app = express();
