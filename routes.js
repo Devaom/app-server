@@ -4,15 +4,10 @@ var News = require('./models/news');
 var AWS = require('aws-sdk');
 var amqp = require('amqplib/callback_api');
 var http = require('http');
-//var mqAgent = require('./mq-agent');
 var mqAdapter = require('./mq-adapter');
 var mongoAdapter = require('./mongo-adapter');
 
-mongoose.connect(process.env.MONGO_URI)
-	.then(() => console.log('Successfully connected to mongodb'))
-	.catch(e => console.error(e));
-
-exports.postNews3 = async function(req, res) {
+exports.postNews = async function(req, res) {
 	var news = new News();
 	news.article_id = req.body.article_id;
 	news.article_url = req.body.article_url;
@@ -34,6 +29,31 @@ exports.postNews3 = async function(req, res) {
 	});
 };
 
+/*
+function func1() {
+	return new Promise(function(resolve, reject) {
+		resolve({a: 1, b: 2});
+	})
+}
+
+function func2(json) {
+	return new Promise(function(resolve, reject) {
+		delete json.a;
+		console.log(json);
+		resolve();
+	})
+}
+
+var testFunc = async function() {
+	var json = await func1();
+	console.log(json); // json 값이 정상적으로 출력
+	await func2(json); // 
+}
+
+testFunc();
+*/
+
+/*
 // MONGODB 적재 -> 'es-index' queue에 publish하는 설계상의 시나리오
 exports.postNews2 = function(req, res){
     console.log('postNews2 called!');
@@ -99,7 +119,9 @@ exports.postNews2 = function(req, res){
 				return res.json(response);
 			});
 }
+*/
 
+/*
 // async/await 지원을 위한 function
 // newsId는 es-index queue에서 꺼내온 MongoDB의 _id
 // MongoDB에서 _id에 해당하는 news를 가져온다
@@ -132,7 +154,9 @@ exports.getNewsFromMongoByIdPromise = function(news_id) {
 		}).end();
 	})
 }
+*/
 
+/*
 // 현재는 바로 ES로 적재하는 시나리오
 exports.postNews = function(req, res){
 	console.log('postNews called');
@@ -211,6 +235,7 @@ exports.postNews = function(req, res){
 		return res.json(err);
 	})
 }
+*/
 
 /////////////////// 요 아래는 나중에 필드값 수정 필요! ////////
 

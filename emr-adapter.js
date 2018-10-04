@@ -1,7 +1,6 @@
 var AWS = require('aws-sdk');
 var emr = new AWS.EMR({region: 'ap-northeast-2'});
 
-
 function addJobFlowStepsPromise(cluster_id, argv) {
 	return new Promise(function(resolve, reject) {
 		var params = {
@@ -55,7 +54,3 @@ var argv = '실행 결과를 알고싶음';
 addJobFlowStepsPromise(cluster_id, argv).then(function(data){
 	console.log('처리한 결과' + String(data));
 });
-
-
-
-

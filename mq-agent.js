@@ -5,7 +5,8 @@ require('dotenv').config();
 var amqp = require('amqplib/callback_api');
 var AWS = require('aws-sdk');
 var http = require('http');
-var dbAdapter = require('./db-adapter');
+//var dbAdapter = require('./db-adapter');
+var mongoAdapter = require('./mongo-adapter');
 var esAdapter = require('./es-adapter');
 var mqAdapter = require('./mq-adapter');
 
@@ -49,7 +50,7 @@ amqp.connect(process.env.RABBITMQ_AMQP_DOMAIN, function(err, conn) {
 			try {
 				// MongoDB에서 news_id를 기준으로 News를 가져오기
 				var news_id = msg.content.toString();
-				var news = await dbAdapter.getNewsFromMongoByIdPromise(news_id);
+				var news = await mongoAdapter.getSingleNewsFromMongoByIdPromise(news_id);
 				//console.log('MongoDB에서 가져온 뉴스 = ' + JSON.stringify(news));
 
 				// News를 ES로 전송하여 indexing하기
