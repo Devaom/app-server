@@ -6,6 +6,10 @@ var amqp = require('amqplib/callback_api');
 var http = require('http');
 var mqAdapter = require('./mq-adapter');
 var mongoAdapter = require('./mongo-adapter');
+//var authAdapter = require('./auth-adapter');
+//var fcmAdapter = require('./fcm-adapter');
+var firebaseAdapter = require('./firebase-adapter');
+var mysqlAdapter = require('./mysql-adapter');
 
 exports.postNews = async function(req, res) {
 	var news = new News();
@@ -29,6 +33,108 @@ exports.postNews = async function(req, res) {
 		queue_success: queue_success
 	});
 };
+
+exports.register_token2 = async function(req, res) {
+	// firebase_uid를 날릴 수 있다고 하는데..
+	// 날릴때, deviceToken값과 같은지 확인할 것.
+	var firebase_uid = req.params.firebase_uid;
+	//var device_token = req.body.device_token;
+	var device_token = 'dYIoUSIqYg0:APA91bGvWgvybfC4eXhWRgdwJxa8FgU1brHdNL_KdjgMOSR4LJwLK3lqTXj0sQSKB0zyu07yhwV_o3hJQM-jU8jceRnDPA6NOp_ay-dXIgVnHbuiwal0mEWcsxaw0LMuOccgbMbhC6Cx';
+
+	console.log('firebase_uid = ' + firebase_uid + ', device_token = ' + device_token);
+	try {
+		if(await firebaseAdapter.checkTokenAndUID(device_token, firebase_uid))
+			console.log('device_token에서 얻어낸 uid가 firebase_uid와 같음');
+		else
+			console.log('device_token에서 얻어낸 uid가 firebase_uid와 다름');
+	} catch (error) {
+		console.log('An error occured while checking token..:', error);
+	}
+
+	try {
+		var fb_result = await firebaseAdapter.send(device_token, '테스트임 무시하셈', '테스트임 무시해도됨');
+	} catch (error) {
+		console.log('An error occured while sending message..:', error);
+	}
+
+	var response = {
+		fb_result: fb_result
+	}
+
+	console.log('result = ' + JSON.stringify(response));
+
+	return res.json(response);
+}
+
+// firebase_uid에 해당하는 user에 device_token 매핑하기
+exports.register_token = async function(req, res) {
+	var firebase_uid = req.params.firebase_uid;	
+	var device_token = req.body.device_token;
+
+	// DB에서 firebase_uid에 해당하는 user의 device_token 변경
+	try {
+		var resultsAndFields = await mysqlAdapter.update_user_device_token(firebase_uid, device_token);
+		return res.json({
+			success: 'I dunno',
+			resultsAndFields: resultsAndFields
+		});
+	} catch (error) {
+		var msg = 'An error occured while modifying user device token: ' + String(error);
+		console.log(msg);
+		return res.json({
+			success: false,
+			result: msg
+		});
+	}
+}
+
+exports.create_stock_event = async function(req, res) {
+	var stock_event = req.body;
+	var result = await mysqlAdapter.insert_stock_event(stock_event);
+	return res.json(result);
+}
+
+exports.update_stock_event_extra_fields = async function(req, res) {
+	var modify_extra_fields = req.body;
+	var stock_event_id = req.params.stock_event_id;
+	var result = await mysqlAdapter.update_stock_event_extra_fields(stock_event_id, modify_extra_fields);
+	return res.json(result);
+}
+
+exports.get_stock_events = async function(req, res) {
+	var stock_event_id = req.params.stock_event_id;
+	var result = await mysqlAdapter.select_stock_events(stock_event_id);
+	return res.json(result);
+}
+
+exports.delete_stock_events = async function(req, res) {
+	var stock_event_id = req.params.stock_event_id;
+	var result = await mysqlAdapter.delete_stock_events(stock_event_id);
+	return res.json(result);
+}
+
+/*
+app.post('/user', function(req, res) {
+	// user 신규 등록
+	routes.createUser(req, res);
+});
+
+app.put('/user/:firebase_uid', function(req, res) {
+	// token 등록할 때도 쓰고.
+	routes.modifyUser(req, res);
+});
+
+// firebase_uid에 device_token 매핑
+app.put('/users/:firebase_uid/device_token', function(req, res) {
+	routes.register_token(req, res);
+});
+*/
+
+
+
+
+
+
 
 /*
 function func1() {

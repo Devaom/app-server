@@ -49,7 +49,44 @@ app.delete('/news/:news_id', function(req, res){
 	routes.deleteNewsById(req, res);
 });
 
+
+app.post('/user', function(req, res) {
+	// user 신규 등록
+	routes.createUser(req, res);
+});
+
+app.put('/user/:firebase_uid', function(req, res) {
+	// token 등록할 때도 쓰고.
+	routes.modifyUser(req, res);
+});
+
+// firebase_uid에 device_token 매핑
+app.put('/users/:firebase_uid/device_token', function(req, res) {
+	routes.register_token(req, res);
+});
+
+app.post('/stock_events', function(req, res) {
+	routes.create_stock_event(req, res);
+});
+
+app.put('/stock_events/:stock_event_id', function(req, res) {
+	routes.update_stock_event_extra_fields(req, res);
+});
+
+app.get('/stock_events/:stock_event_id', function(req, res) {
+	routes.get_stock_events(req, res);
+});
+
+app.delete('/stock_events/:stock_event_id', function(req, res) {
+	routes.delete_stock_events(req, res);
+});
+
+// deprecated
+app.put('/register_token/:firebase_uid', function(req, res) {
+	console.log('[PUT /register_token/:' + req.params.firebase_uid + '] QUERY: ' + JSON.stringify(req.body));
+	routes.register_token(req, res);
+});
+
 app.listen(port, function(){
 	console.log('Express server has started on port ' + port);
 });
-// end of the code
