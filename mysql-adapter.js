@@ -151,7 +151,8 @@ async function select_stock_events(stock_event_id) {
 async function delete_stock_events(stock_event_id) {
 	try {
 		if(stock_event_id == 'all') {
-			var results = await StockEvents.findAll();
+			//var results = await StockEvents.destroy({where: {}, truncate: true});
+			var results = await StockEvents.destroy({truncate: true});
 		} else {
 			var results = await StockEvents.destroy({
 				where: { id: stock_event_id }
@@ -163,8 +164,6 @@ async function delete_stock_events(stock_event_id) {
 		return error;
 	}
 }
-
-
 
 async function update_stock_event_extra_fields(id, modify_extra_fields){
 	try {
