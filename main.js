@@ -1,4 +1,5 @@
 require('dotenv').config();
+//require('dotenv').config({path: '/home/ec2-user/.env'});
 //require('./mq-agent');
 
 var express = require('express');

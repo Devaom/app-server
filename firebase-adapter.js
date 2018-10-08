@@ -1,12 +1,22 @@
 var admin = require('firebase-admin');
-var service_account = require('./service-account-key.json');
 
+var fs = require('fs');
+fs.readFile('/home/ec2-user/service-account-key.json', function(error, buffer) {
+	service_account = JSON.parse(buffer.toString());
+	admin.initializeApp({
+		credential: admin.credential.cert(service_account)		
+	});
+	messaging = admin.messaging();
+	auth = admin.auth();
+});
+
+/*
+var service_account = require('./service-account-key.json');
 admin.initializeApp({
 	credential: admin.credential.cert(service_account)		
 });
+*/
 
-var messaging = admin.messaging();
-var auth = admin.auth();
 
 function send(device_token, title, body) {
 	var data = {
