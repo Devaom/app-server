@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('date-utils'); // new Date('~~').toFormat() 펑션같은거를 쓸 수 있도록 확장해준다.
 
 // https://hyunseob.github.io/2016/03/27/usage-of-sequelize-js/
 var Sequelize = require('sequelize');
@@ -12,6 +13,8 @@ var sequelize = new Sequelize(
 		operatorsAliases: false
 	}
 )
+
+const Op = Sequelize.Op;
 
 // 실제로 테이블에 createdAt, updatedAt 필드(type: DATETIME, null: false)도 자동으로 생성해줌.
 var Users = sequelize.define('Users', {
@@ -132,14 +135,58 @@ async function find_all(table_name) {
 	}
 }
 
-async function select_stock_events(stock_event_id) {
+async function select_stock_events(stock_event_id, query_date) {
 	try {
 		if(stock_event_id == 'all') {
 			var results = await StockEvents.findAll();
+		} else if (stock_event_id == 'daily') {
+			var dt = new Date(query_date);
+			var dt_first = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), 0);
+			var dt_last = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), 23, 59, 59);
+			console.log(dt_first, dt_last);
+			var results = await StockEvents.findAll({
+				where: { 
+					event_time: {
+						[Op.between]: [dt_first, dt_last]
+					}
+				}
+			});
+
+		} else if (stock_event_id == 'weekly') {
+			var dt = new Date(query_date);	
+			dt.setDate(dt.getDate() - dt.getDay()); // 주의 첫번째 날로 설정
+			
+			var dt_first = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), 0);
+			dt.setDate(dt.getDate() + 6);
+			var dt_last = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), 23, 59, 59);
+
+			var results = await StockEvents.findAll({
+				where: {
+					event_time: {
+						[Op.between]: [dt_first, dt_last]
+					}
+				}
+			});
+
+		} else if(stock_event_id == 'monthly') {
+			console.log('monthly 호출');
+			var dt = new Date(query_date);
+			console.log('dt = ', dt.toFormat('YYYY-MM-DD'));
+			var dt_first = new Date(dt.getFullYear(), dt.getMonth(), 1); // 이번달의 초
+			var dt_last = new Date(dt_first.getFullYear(), dt_first.getMonth() + 1, 0); // 다음 달로 넘어가서 -1 일
+			var results = await StockEvents.findAll({
+				where: {
+					event_time: {
+						[Op.between]: [dt_first, dt_last]
+					}
+				}
+			});
+
 		} else {
 			var results = await StockEvents.findOne({
 				where: { id: stock_event_id }
 			});
+
 		}
 		return results;
 	} catch (error) {
@@ -193,7 +240,6 @@ async function update_user_device_token(firebase_uid, device_token) {
 		return error;
 	}
 }
-
 
 
 

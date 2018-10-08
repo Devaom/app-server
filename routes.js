@@ -103,7 +103,8 @@ exports.update_stock_event_extra_fields = async function(req, res) {
 
 exports.get_stock_events = async function(req, res) {
 	var stock_event_id = req.params.stock_event_id;
-	var result = await mysqlAdapter.select_stock_events(stock_event_id);
+	var query_date = req.query.query_date;
+	var result = await mysqlAdapter.select_stock_events(stock_event_id, query_date);
 	return res.json(result);
 }
 
