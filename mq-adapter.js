@@ -1,7 +1,7 @@
 require('dotenv').config();
 var amqp = require('amqplib/callback_api');
 
-function publishQueuePromise(queue, value) {
+exports.publish_queue_promise = function(queue, value) {
 	return new Promise(function(resolve, reject) {
 		amqp.connect(process.env.RABBITMQ_AMQP_DOMAIN, function(error, conn) {
 			if(error) {
@@ -23,7 +23,7 @@ function publishQueuePromise(queue, value) {
 	})
 }
 
-exports.publishQueuePromise = publishQueuePromise;
+//exports.publishQueuePromise = publishQueuePromise;
 
 /*
 function testFunc1(value) {

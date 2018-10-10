@@ -4,12 +4,13 @@ var News = require('./models/news');
 //var AWS = require('aws-sdk');
 //var amqp = require('amqplib/callback_api');
 //var http = require('http');
-var mqAdapter = require('./mq-adapter');
+var mq_adapter = require('./mq-adapter');
 var mongo_adapter = require('./mongo-adapter');
 //var authAdapter = require('./auth-adapter');
 //var fcmAdapter = require('./fcm-adapter');
 var firebaseAdapter = require('./firebase-adapter');
 var mysql_adapter = require('./mysql-adapter');
+var es_adapter = require('./es-adapter');
 
 // YAML 문법에 관한 샘플 https://gongzza.github.io/javascript/nodejs/swagger-node-express/ 참고하였음
 
@@ -197,14 +198,16 @@ exports.post_news = async function(req, res) {
 	news.relatedStocks = req.body.relatedStocks;
 
 	try {
-		var mongo_saved_news = await mongo_adapter.insertNewsToMongoPromise(news);
-		delete mongo_saved_news.__v;
-		var queue_success = await mqAdapter.publishQueuePromise('es-index', mongo_saved_news._id);
-		return res.json(mongo_saved_news);
+		var mongo_saved_news_id = await mongo_adapter.insert_news_promise(news);
+		//var mongo_saved_news = await mongo_adapter.insertNewsToMongoPromise(news);
+		//delete mongo_saved_news.__v;
+		var queue_success = await mq_adapter.publish_queue_promise('es-index', mongo_saved_news_id);
+		return res.json({
+			mongo_saved_news_id: mongo_saved_news_id
+		});
 	} catch(error) {
 		console.log('An error occured while storing and indexing a news:', error);
 		return res.json({
-			success: false,
 			error: error
 		});
 	}
@@ -236,6 +239,18 @@ exports.post_news = async function(req, res) {
  *             application/json:
  */
 exports.get_news_by_id = async function(req, res) {
+	var news_id = req.params.news_id;
+	console.log('routes.get_news_by_id 진입');
+	try {
+		var news = await mongo_adapter.get_news_by_id_promise(news_id);
+		return res.json(news);
+	} catch(error) {
+		return res.json({
+			error: error
+		});
+	}
+
+	/*
 	var result = 'fail';
 	try {
 		result = await new Promise(function(resolve, reject) {
@@ -250,6 +265,7 @@ exports.get_news_by_id = async function(req, res) {
 		req_params: req.params,
 		req_query: req.query
 	});
+	*/
 };
 
 /**
@@ -326,6 +342,22 @@ exports.get_news_by_query = async function(req, res) {
 	}
 	console.log('max_length=', max_length);
 
+
+	try {
+		var test_result = await es_adapter.get_news_latest(String(max_length));
+		console.log('Successfully tested!:', test_result);
+		return res.json({
+			result: test_result
+		});
+	} catch(error) {
+		console.log('An error occured while test-retrieving..:', error);
+		return res.json({
+			error: error
+		});
+	}
+
+
+	/*
 	try {
 		var result = await mongo_adapter.get_news_latest(max_length);
 		return res.json({
@@ -338,6 +370,7 @@ exports.get_news_by_query = async function(req, res) {
 			error: error
 		});
 	}
+	*/
 }
 
 /**

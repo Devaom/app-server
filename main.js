@@ -1,6 +1,6 @@
 require('dotenv').config();
 //require('dotenv').config({path: '/home/ec2-user/.env'});
-//require('./mq-agent');
+require('./mq-agent');
 
 //var path = require('path');
 var express = require('express');
@@ -14,7 +14,6 @@ app.use(bodyParser.json());
 // node_modules/swagger-ui/dist에 저장되어있는 html 파일들 라우팅
 //app.use('/swagger-ui', express.static(path.join(__dirname, './node_modules/swagger-ui/dist')));
 //console.log(path.join(__dirname, './node_modules/swagger-ui/dist'), '에 연결됨.');
-
 
 //////////////////////////////////////////////////////////
 //                     SWAGGER                          //
