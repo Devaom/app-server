@@ -96,13 +96,54 @@ const Label = sequelize.define('Label', {
 });
 */
 
-async function insert_user(user) {
+async function create_user(user) {
 	try {
 		var results = await Users.create(user);
-		console.log('Successfully inserted user:', results);
+		//console.log('Successfully inserted user:', results);
 		return results;
 	} catch(error) {
 		console.log('An error occured while inserting:', error);
+		return error;
+	}
+}
+
+async function delete_user(firebase_uid) {
+	try {
+		var results = await Users.destroy({
+				where: { firebase_uid: firebase_uid }
+		});
+		//console.log('Successfully deleted user:', results);
+		return results;
+	} catch(error) {
+		console.log('An error occured while deleting an user:', error);
+		return error;
+	}
+}
+
+async function get_user_by_id(firebase_uid) {
+	try {
+		var result = await Users.findOne({
+			where: { firebase_uid: firebase_uid }
+		});
+		console.log('Successfully got an user:', result);
+		return result;
+	} catch(error) {
+		console.log('An error occured while getting an user:', error);
+		return error;
+	}
+}
+
+async function get_user_by_query(queries) {
+	console.log('get_user_by_query called:', queries);
+	try {
+		if(queries.type == 'all') {
+			var results = await Users.findAll();
+		} else {
+			var results = {};
+		}
+		return results
+	} catch(error) {
+		console.log('An error occured while getting users by query:', error);
 		return error;
 	}
 }
@@ -229,12 +270,12 @@ async function update_stock_event_extra_fields(id, modify_extra_fields){
 
 async function update_user_device_token(firebase_uid, device_token) {
 	try {
-		var results = await Users.update({
+		var updated_users_count = await Users.update({
 			device_token: device_token
 		}, {
 			where: { firebase_uid: firebase_uid }	
 		});
-		return results;
+		return updated_users_count;
 	} catch (error) {
 		console.log('An error occured while updating device token:', error);
 		return error;
@@ -242,7 +283,7 @@ async function update_user_device_token(firebase_uid, device_token) {
 }
 
 
-
+/*
 if(process.argv[2] == 'insert_user') {
 	insert_user({
 		firebase_uid: process.argv[3],
@@ -271,8 +312,12 @@ if(process.argv[2] == 'insert_user') {
 		console.log('디바이스 토큰 업데이트함:', result);
 	});
 }
+*/
 
-exports.insert_user = insert_user;
+exports.create_user = create_user;
+exports.delete_user = delete_user;
+exports.get_user_by_id = get_user_by_id;
+exports.get_user_by_query = get_user_by_query;
 exports.insert_stock_event = insert_stock_event;
 exports.find_all = find_all;
 exports.update_user_device_token = update_user_device_token;

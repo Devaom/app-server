@@ -7,14 +7,38 @@ mongoose.connect(process.env.MONGO_URI)
 	.then(() => console.log('Successfully connected to MongoDB'))
 	.catch(e => console.error(e));
 
+exports.get_news_by_id = function() {
+
+}
+
+exports.get_news_latest = function(max_length) {
+	console.log('get_news_latest 진입');
+	return new Promise(function(resolve, reject) {
+		//resolve({abcd:'1234'});
+
+		//News.find({}).limit(max_length).sort({time: -1}).exec(function(error, docs) {
+		News.find({}).limit(max_length).exec(function(error, docs) {
+			if(error) {
+				console.log('error!');
+				reject(error);
+			} else {
+				console.log('else!');
+				resolve(docs);
+			}
+		});
+	});
+}
+
 function insertNewsToMongoPromise(news) {
 	return new Promise(function(resolve, reject) {
 		news.save(function(error, saved_news) {
 			if(error) {
 				reject(error);
 			} else {
+				// saved_news는 Mongo Document 객체임. 그래서 delete 연산자로 내부 값을 지울 수 없음. 유의
 				// MongoDB에서 처리되었을 때는 값이 약간 변경됨 유의
-				resolve(saved_news);
+				console.log('mongo_saved_news=', saved_news);
+				resolve(saved_news.toJSON());
 			}
 		})
 	});

@@ -33,3 +33,11 @@ exports.indexNewsPromise = function(news) {
 		})
 	})
 }
+
+/*
+exports.get_news_by_query = function() {
+	return new Promise(function(resolve, reject) {
+		
+	});
+}
+*/

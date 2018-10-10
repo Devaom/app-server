@@ -20,6 +20,8 @@
     "mongoose": "^5.2.13",
     "mysql2": "^1.6.1",
     "sequelize": "^4.39.0",
-    "stompit": "^0.25.0"
+    "stompit": "^0.25.0",
+    "swagger-jsdoc": "^3.2.3",
+    "swagger-ui-express": "^4.0.1"
   }
 }

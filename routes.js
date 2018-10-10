@@ -1,17 +1,188 @@
 require('dotenv').config()
-var mongoose = require('mongoose');
+//var mongoose = require('mongoose');
 var News = require('./models/news');
-var AWS = require('aws-sdk');
-var amqp = require('amqplib/callback_api');
-var http = require('http');
+//var AWS = require('aws-sdk');
+//var amqp = require('amqplib/callback_api');
+//var http = require('http');
 var mqAdapter = require('./mq-adapter');
-var mongoAdapter = require('./mongo-adapter');
+var mongo_adapter = require('./mongo-adapter');
 //var authAdapter = require('./auth-adapter');
 //var fcmAdapter = require('./fcm-adapter');
 var firebaseAdapter = require('./firebase-adapter');
-var mysqlAdapter = require('./mysql-adapter');
+var mysql_adapter = require('./mysql-adapter');
 
-exports.postNews = async function(req, res) {
+// YAML 문법에 관한 샘플 https://gongzza.github.io/javascript/nodejs/swagger-node-express/ 참고하였음
+
+
+/**
+ * @swagger
+ * definitions:
+ *   News:
+ *     type: object
+ *     required:
+ *     properties:
+ *       article_id:
+ *         type: string
+ *         description: article id
+ *         example: 0000004447
+ *       article_url:
+ *         type: string
+ *         description: article url
+ *         example: https://news.naver.com/main/read.nhn?mode=LSD&mid=sec&sid1=001&oid=089&aid=0000004447
+ *       redirect_url:
+ *         type: string
+ *         description: redirect url
+ *         example: https://news.naver.com/main/read.nhn?mode=LSD&mid=sec&sid1=001&oid=089&aid=0000004447
+ *       origin_url:
+ *         type: string
+ *         description: origin url
+ *         example: null
+ *       title:
+ *         type: string
+ *         description: article title
+ *         example: 동정
+ *       body_html:
+ *         type: string
+ *         description: article body content
+ *         example: <html><body><div id=\"articleBodyContents\">\n\n\n\n\n\t\n\t대전 국립현충원 참배 홍선기 대전시장은 2일 오전 7시30분 영렬탑과 현충원을 찾아 호국영령들에게 참배한후 2002년도 시무식을 갖는다.\r<br/><br/>올 업무추진 방향 논의 오제직 공주대총장은 2일 대학본부 회의실에서 2002년도 시무식을 갖고 주요 업무 추진 방향등에 대해 논의한다.\r<br/><br/>국립대전현충원 참배 심대평 충청남도지사는 1일 오전 계룡산 천황봉 해맞이 행사에 참석한데 이어 국립대전현충원을 참배한다.새해 추진업무등 논의 이시찬 바르게살기운동 대전광역시협의회 회장은 2일 협의회사무실에서 임원들과 함께 새해 추진업무에 대해 논의한다.<br/><br/>\n\n</div></body></html>
+ *       time:
+ *         type: datetime
+ *         description: date and time
+ *         example: 1990.01.01 10:55
+ *       provider:
+ *         type: string
+ *         description: press
+ *         example: 대전일보
+ *       reporter:
+ *         type: string
+ *         description: 기자명 혹은 이메일
+ *         example: null
+ *       category:
+ *         type: string
+ *         description: category
+ *         example: null
+ *       relatedStocks:
+ *         type: string
+ *         description: related stock list
+ *         example: [12, 34]
+ *   IndexedNews:
+ *     allOf:
+ *       - $ref: '#/definitions/News'
+ *       - type: object
+ *         required: 
+ *         properties:
+ *           _id: 
+ *             type: string
+ *             description: indexed news id
+ *   Users:
+ *     type: object
+ *     required:
+ *     properties:
+ *       firebase_uid:
+ *         type: string
+ *         description: firebase uid
+ *         example: uid123
+ *       device_token:
+ *         type: string
+ *         description: device token
+ *         example: token123
+ *   StockEvents:
+ *     type: object
+ *     required:
+ *     properties:
+ *       event_name:
+ *         type: string
+ *         description: event name
+ *         example: 테스트 이벤트1
+ *       event_content:
+ *         type: string
+ *         description: event content
+ *         example: 이벤트 내용
+ *       event_time:
+ *         type: string
+ *         description: event datetime
+ *         example: 2018.12.25 12:12:12
+ *       related_news_list:
+ *         type: string
+ *         description: related news list
+ *         example: [1, 3, 223]
+ *       incidents:
+ *         type: string
+ *         description: incidents
+ *         example: ["ada", "addasdw"]
+ *       links:
+ *         type: string
+ *         description: incidents
+ *         example: ["ada", "addasdw"]
+ *       extra_fields:
+ *         type: string
+ *         description: extra fields
+ *         example: { "extra1": "엑스트라1", "extra2": "엑스트라2"}
+*/
+
+
+/*
+{
+    "event_name": "테스트이벤트명",
+    "event_content": "이벤트내용",
+    "event_time": "2018.12.25 12:12:12",
+    "related_news_list": [1, 3, 223],
+    "incidents": ["ada", "dasdaw"],
+    "links": ["ada", "dasdaw"],
+    "extra_fields": {
+    	"extra1": "엑스트라1",
+    	"extra2": "엑스트라2"
+    }
+}
+*/
+
+/**
+ * @swagger
+ * tags:
+ *  - name: News
+ *    description: News(which not indexed), IndexedNews(which indexed to ES)
+ *  - name: Users
+ *    description: User & Device information
+ *  - name: StockEvents
+ *    description: Stock Event
+*/
+
+/**
+ * @swagger
+ * paths:
+ *   /news:
+ *     put:
+ *       tags: [News]
+ *       summary: (in developing) update a news
+ *     delete:
+ *       tags: [News]
+ *       summary: (in developing) delete a news
+*/
+
+/**
+ * @swagger
+ * paths:
+ *   /news:
+ *     post:
+ *       tags: [News]
+ *       summary: storing & indexing a news
+ *       description: storing in mongodb and indexing to elasticsearch. 
+ *       consume: application/json
+ *       parameters:
+ *         - name: body
+ *           in: body
+ *           description: the body of request
+ *           schema:
+ *             $ref: '#/definitions/News'
+ *       responses:
+ *         200:
+ *           description: OK
+ *           schema:
+ *             $ref: '#/definitions/IndexedNews'
+ *           content:
+ *             application/json:
+ */
+exports.post_news = async function(req, res) {
 	var news = new News();
 	news.article_id = req.body.article_id;
 	news.article_url = req.body.article_url;
@@ -25,14 +196,398 @@ exports.postNews = async function(req, res) {
 	news.category = req.body.category;
 	news.relatedStocks = req.body.relatedStocks;
 
-	var mongo_saved_news = await mongoAdapter.insertNewsToMongoPromise(news);
-	var queue_success = await mqAdapter.publishQueuePromise('es-index', mongo_saved_news._id);
+	try {
+		var mongo_saved_news = await mongo_adapter.insertNewsToMongoPromise(news);
+		delete mongo_saved_news.__v;
+		var queue_success = await mqAdapter.publishQueuePromise('es-index', mongo_saved_news._id);
+		return res.json(mongo_saved_news);
+	} catch(error) {
+		console.log('An error occured while storing and indexing a news:', error);
+		return res.json({
+			success: false,
+			error: error
+		});
+	}
+};
+
+/**
+ * @swagger
+ * paths:
+ *   /news/{news_id}:
+ *     get:
+ *       tags: [News]
+ *       summary: (in developing) get a news.
+ *       description: get a news~!
+ *       consume: application/json
+ *       parameters:
+ *         - name: news_id
+ *           in: path
+ *           description: news id
+ *           required: true
+ *           schema:
+ *             type: string
+ *           default: 1
+ *       responses:
+ *         200:
+ *           description: OK
+ *           schema:
+ *             $ref: '#/definitions/News'
+ *           content:
+ *             application/json:
+ */
+exports.get_news_by_id = async function(req, res) {
+	var result = 'fail';
+	try {
+		result = await new Promise(function(resolve, reject) {
+			resolve('success');
+		})
+	} catch(error) {
+		result = error;
+	}
 
 	return res.json({
-		mongo_saved_news: mongo_saved_news,
-		queue_success: queue_success
+		result: result,
+		req_params: req.params,
+		req_query: req.query
 	});
 };
+
+/**
+ * @swagger
+ * paths:
+ *   /news:
+ *     get:
+ *       tags: [News]
+ *       summary: getting a news by query.
+ *       description: getting a news by query.
+ *       consume: application/json
+ *       parameters:
+ *         - name: type
+ *           in: query
+ *           description: latest = 최신순 * 현재는 latest만 지원하는게 함정
+ *           required: true
+ *           schema:
+ *             type: string
+ *           default: latest
+ *         - name: max_length
+ *           in: query
+ *           description: 가져올 뉴스 갯수
+ *           required: true
+ *           schema:
+ *             type: string
+ *           default: 10
+ *       responses:
+ *         200:
+ *           description: OK
+ *           schema:
+ *           content:
+ *             application/json:
+ */
+exports.get_news_by_query = async function(req, res) {
+	/*
+	return res.json({
+		results: [
+			{
+				article_id: 'abcdefg',
+				article_url: 'abcdefg',
+				redirect_url: 'abcdefg',
+				origin_url: 'abcdefg',
+				title: 'abcdefg',
+				body_html:'abcdefg',
+				time: '2012.03.03 12:12',
+				provider: '경향신문',
+				reporter: null,
+				category: null,
+				relatedStocks: [1,2,3],
+				_id: 'agawwagg1'
+			},
+			{
+				article_id: 'abcdefg',
+				article_url: 'abcdefg',
+				redirect_url: 'abcdefg',
+				origin_url: 'abcdefg',
+				title: 'abcdefg',
+				body_html: 'abcdefg',
+				time: '2012.03.03 12:12',
+				provider: '경향신문',
+				reporter: null,
+				category: null,
+				relatedStocks: [1,2,3],
+				_id: 'agawwagg2'
+			}
+		]
+	});
+	*/
+
+	try {
+		var max_length = parseInt(req.query.max_length);
+	} catch (error) {
+		console.log('typing err');
+	}
+	console.log('max_length=', max_length);
+
+	try {
+		var result = await mongo_adapter.get_news_latest(max_length);
+		return res.json({
+			result: result
+		});
+
+	} catch(error) {
+		console.log('An error occured while getting news by query:', error);
+		return res.json({
+			error: error
+		});
+	}
+}
+
+/**
+ * @swagger
+ * paths:
+ *   /users:
+ *     post:
+ *       tags: [Users]
+ *       summary: creating an user.
+ *       description: creating an user.
+ *       consume: application/json
+ *       parameters:
+ *         - name: body
+ *           in: body
+ *           description: the body of request
+ *           schema:
+ *             $ref: '#/definitions/Users'
+ *       responses:
+ *         200:
+ *           description: OK
+ *           schema:
+ *             $ref: '#definitions/Users'
+ *           content:
+ *             application/json:
+ */
+exports.create_user = async function(req, res) {
+	var created_user = await mysql_adapter.create_user(req.body);
+	return res.json({
+		created_user: created_user
+	});
+}
+
+/**
+ * @swagger
+ * paths:
+ *   /users/{firebase_uid}:
+ *     delete:
+ *       tags: [Users]
+ *       summary: deleting an user.
+ *       description: deleting an user.
+ *       consume: application/json
+ *       parameters:
+ *         - name: firebase_uid
+ *           in: path
+ *           description: firebase uid
+ *           required: true
+ *           schema:
+ *             type: string
+ *           default: uid123
+ *       responses:
+ *         200:
+ *           description: OK
+ *           schema:
+ *           content:
+ *             application/json:
+ */
+exports.delete_user = async function(req, res) {
+	var deleted_user_count = await mysql_adapter.delete_user(req.params.firebase_uid);
+	return res.json({
+		deleted_user_count: deleted_user_count
+	});
+}
+
+/**
+ * @swagger
+ * paths:
+ *   /users/{firebase_uid}:
+ *     get:
+ *       tags: [Users]
+ *       summary: getting an user by id.
+ *       description: getting an user by id.
+ *       consume: application/json
+ *       parameters:
+ *         - name: firebase_uid
+ *           in: path
+ *           description: firebase uid
+ *           required: true
+ *           schema:
+ *             type: string
+ *           default: uid123
+ *       responses:
+ *         200:
+ *           description: OK
+ *           schema:
+ *           content:
+ *             application/json:
+ */
+exports.get_user_by_id = async function(req, res) {
+	var user = await mysql_adapter.get_user_by_id(req.params.firebase_uid);
+	return res.json(user);
+}
+
+/**
+ * @swagger
+ * paths:
+ *   /users:
+ *     get:
+ *       tags: [Users]
+ *       summary: getting an user by query.
+ *       description: getting an user by query.
+ *       consume: application/json
+ *       parameters:
+ *         - name: type
+ *           in: query
+ *           description: specify query type. (all = all users) * 현재는 all만 지원하는게 함정
+ *           required: true
+ *           schema:
+ *             type: string
+ *           default: all
+ *       responses:
+ *         200:
+ *           description: OK
+ *           schema:
+ *           content:
+ *             application/json:
+ */
+exports.get_user_by_query = async function(req, res) {
+	var users = await mysql_adapter.get_user_by_query(req.query);
+	return res.json({
+		users: users
+	});
+}
+
+/**
+ * @swagger
+ * paths:
+ *   /users/{firebase_uid}/device_token:
+ *     put:
+ *       tags: [Users]
+ *       summary: updating user's device token.
+ *       description: updating user's device token.
+ *       consume: application/json
+ *       parameters:
+ *         - name: firebase_uid
+ *           in: path
+ *           description: firebase uid
+ *           required: true
+ *           schema:
+ *             type: string
+ *           default: uid123
+ *         - name: body
+ *           in: body
+ *           description: specify device token.
+ *           required: true
+ *           example:
+ *             device_token: dYIoUSIqYg0:APA91bGvWgvybfC4eXhWRgdwJxa8FgU1brHdNL_KdjgMOSR4LJwLK3lqTXj0sQSKB0zyu07yhwV_o3hJQM-jU8jceRnDPA6NOp_ay-dXIgVnHbuiwal0mEWcsxaw0LMuOccgbMbhC6Cx
+ *       responses:
+ *         200:
+ *           description: OK
+ *           schema:
+ *           content:
+ *             application/json:
+ */
+exports.update_user_device_token = async function(req, res) {
+	var firebase_uid = req.params.firebase_uid;	
+	var device_token = req.body.device_token;
+	try {
+		var updated_users_count = await mysql_adapter.update_user_device_token(firebase_uid, device_token);
+		return res.json({
+			updated_users_count: updated_users_count[0]
+		});
+	} catch (error) {
+		console.log('An error occured while updating device token:', error);
+		return res.json({
+			error: error
+		});
+	}
+}
+
+/**
+ * @swagger
+ * paths:
+ *   /stock_events:
+ *     post:
+ *       tags: [StockEvents]
+ */
+exports.create_stock_event = async function(req, res) {
+	var stock_event = req.body;
+	var result = await mysql_adapter.insert_stock_event(stock_event);
+	return res.json(result);
+}
+
+/**
+ * @swagger
+ * paths:
+ *   /stock_events/{stock_event_id}:
+ *     put:
+ *       tags: [StockEvents]
+ */
+exports.update_stock_event_extra_fields = async function(req, res) {
+	var modify_extra_fields = req.body;
+	var stock_event_id = req.params.stock_event_id;
+	var result = await mysql_adapter.update_stock_event_extra_fields(stock_event_id, modify_extra_fields);
+	return res.json(result);
+}
+
+/**
+ * @swagger
+ * paths:
+ *   /stock_events/{stock_event_id}:
+ *     get:
+ *       tags: [StockEvents]
+ */
+exports.get_stock_events = async function(req, res) {
+	var stock_event_id = req.params.stock_event_id;
+	var query_date = req.query.query_date;
+	var result = await mysql_adapter.select_stock_events(stock_event_id, query_date);
+	return res.json(result);
+}
+
+/**
+ * @swagger
+ * paths:
+ *   /stock_events/{stock_event_id}:
+ *     delete:
+ *       tags: [StockEvents]
+ */
+exports.delete_stock_events = async function(req, res) {
+	var stock_event_id = req.params.stock_event_id;
+	var result = await mysql_adapter.delete_stock_events(stock_event_id);
+	return res.json(result);
+}
+
+
+
+
+
+/*
+app.post('/stock_events', function(req, res) {
+	routes.create_stock_event(req, res);
+});
+
+app.put('/stock_events/:stock_event_id', function(req, res) {
+	routes.update_stock_event_extra_fields(req, res);
+});
+
+app.get('/stock_events/:stock_event_id', function(req, res) {
+	routes.get_stock_events(req, res);
+});
+
+app.delete('/stock_events/:stock_event_id', function(req, res) {
+	routes.delete_stock_events(req, res);
+});
+
+// deprecated
+app.put('/register_token/:firebase_uid', function(req, res) {
+	console.log('[PUT /register_token/:' + req.params.firebase_uid + '] QUERY: ' + JSON.stringify(req.body));
+	routes.register_token(req, res);
+});
+*/
 
 exports.register_token2 = async function(req, res) {
 	// firebase_uid를 날릴 수 있다고 하는데..
@@ -87,33 +642,6 @@ exports.register_token = async function(req, res) {
 		});
 	}
 }
-
-exports.create_stock_event = async function(req, res) {
-	var stock_event = req.body;
-	var result = await mysqlAdapter.insert_stock_event(stock_event);
-	return res.json(result);
-}
-
-exports.update_stock_event_extra_fields = async function(req, res) {
-	var modify_extra_fields = req.body;
-	var stock_event_id = req.params.stock_event_id;
-	var result = await mysqlAdapter.update_stock_event_extra_fields(stock_event_id, modify_extra_fields);
-	return res.json(result);
-}
-
-exports.get_stock_events = async function(req, res) {
-	var stock_event_id = req.params.stock_event_id;
-	var query_date = req.query.query_date;
-	var result = await mysqlAdapter.select_stock_events(stock_event_id, query_date);
-	return res.json(result);
-}
-
-exports.delete_stock_events = async function(req, res) {
-	var stock_event_id = req.params.stock_event_id;
-	var result = await mysqlAdapter.delete_stock_events(stock_event_id);
-	return res.json(result);
-}
-
 /*
 app.post('/user', function(req, res) {
 	// user 신규 등록
