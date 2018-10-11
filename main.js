@@ -1,6 +1,6 @@
 require('dotenv').config();
 //require('dotenv').config({path: '/home/ec2-user/.env'});
-require('./mq-agent');
+//require('./mq-agent');
 
 //var path = require('path');
 var express = require('express');
@@ -28,12 +28,12 @@ var swagger_definition = {
 		version: '1.0.0',
 		description: 'inked API Specification'
 	},
+	/*
 	host: 'nginx-lb-429321543.ap-northeast-2.elb.amazonaws.com',
 	basePath: '/api'
-	/*
+	*/
 	host: 'ec2-52-79-134-126.ap-northeast-2.compute.amazonaws.com',
 	basePath: ''
-	*/
 };
 
 var options = {

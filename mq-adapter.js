@@ -44,6 +44,7 @@ exports.publish_queue_promise = function(queue_name, value) {
 
 				var buffered_value = new Buffer(String(value));
 				var success = await channel.sendToQueue(queue_name, buffered_value);
+				conn.close(); // 안닫으면 나중에 터짐 ㅜㅜ
 				resolve(success);
 			});
 		})
