@@ -75,28 +75,43 @@ exports.indexNewsPromise = function(news) {
 	})
 }
 
-exports.get_news_latest = function(max_length) {
-	return new Promise(function(resolve, reject) {
-		var endpoint = new AWS.Endpoint(process.env.ES_DOMAIN)
-		var request = new AWS.HttpRequest(endpoint, process.env.ES_REGION);
+exports.get_news_latest = function(max_length, last_news_id) {
+	// start_news_id 이후 max_length 만큼의 뉴스기사를 받아온다
+	// start_news_id가 없으면 그냥 가장 최신의 기사를 max_length 만큼 받아온다
+	return new Promise(async function(resolve, reject) {
+		var endpoint = new AWS.Endpoint(ES_DOMAIN_V2)
+		var request = new AWS.HttpRequest(endpoint, ES_REGION);
 		request.method = 'POST';
-		request.path += process.env.ES_INDEX + '/' + process.env.ES_TYPE + '/_search';
+		request.path += ES_INDEX + '/' + ES_TYPE + '/_search';
+		//request.path += '?filter_path=hits.hits._source'
 		//request.path += process.env.ES_INDEX + '/_search';
 
+		var last_news_time = await get_news_time(last_news_id);
+		console.log('last_news_time=', last_news_time);
+
+		// news_id에 해당하는 time을 가져와야 함
+		request.body = JSON.stringify({
+			_source: ["time"], // 요 필드만 가져올거임
+			query: {
+				match: {
+					_id: last_news_id
+				}
+			},
+			size: max_length
+		});
+		
+		/*
 		request.body = JSON.stringify({
 			query: {
-				/*
-				match: {
-					title: '동정'
-				}
-				*/
+				match_all: {}
 			},
 			sort: [
 				{ time: { order: 'desc' } }
 			]
 		});
+		*/
 
-		request.headers['host'] = process.env.ES_DOMAIN;
+		request.headers['host'] = ES_DOMAIN_V2;
 		request.headers['Content-Type'] = 'application/json';
 
 		var response_body = '';
@@ -107,13 +122,61 @@ exports.get_news_latest = function(max_length) {
 			});
 
 			response.on('end', function() {
-				resolve({
-					headers: {
-						code: response.statusCode,
-						message: response.statusMessage
-					},
-					body: JSON.parse(response_body)
-				});
+				response_body = JSON.parse(response_body);
+				resolve(response_body);
+			});
+
+		}, function(error) {
+			reject(error);
+		});
+	});
+}
+
+function get_news_time(news_id) {
+	return new Promise(function(resolve, reject) {
+		var endpoint = new AWS.Endpoint(ES_DOMAIN_V2)
+		var request = new AWS.HttpRequest(endpoint, ES_REGION);
+		request.method = 'POST';
+		request.path += ES_INDEX + '/' + ES_TYPE + '/_search';
+		//request.path += '?filter_path=hits.hits._source'
+		//request.path += process.env.ES_INDEX + '/_search';
+
+		// news_id에 해당하는 time을 가져와야 함
+		request.body = JSON.stringify({
+			_source: ["time"], // 요 필드만 가져올거임
+			query: {
+				match: {
+					_id: news_id
+				}
+			}
+		});
+		
+		/*
+		request.body = JSON.stringify({
+			query: {
+				match_all: {}
+			},
+			sort: [
+				{ time: { order: 'desc' } }
+			]
+		});
+		*/
+
+		request.headers['host'] = ES_DOMAIN_V2;
+		request.headers['Content-Type'] = 'application/json';
+
+		var response_body = '';
+		var client = new AWS.HttpClient();
+		client.handleRequest(request, null, function(response) {
+			response.on('data', function(chunk) {
+				response_body += chunk;
+			});
+
+			response.on('end', function() {
+				response_body = JSON.parse(response_body);
+				var time = response_body.hits.hits[0]._source.time;
+				//time = new Date(time); // 이걸 지우면 그냥 es에 적재된 포맷 그대로
+				resolve(time);
 			});
 
 		}, function(error) {

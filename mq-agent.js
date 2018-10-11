@@ -63,7 +63,8 @@ amqp.connect(process.env.RABBITMQ_AMQP_DOMAIN, function(err, conn) {
 		ch.consume('spark-analysis', async function(msg) {
 			try {
 				// submitting to spark
-				await emr_adapter.addJobFlowStepsPromise(process.env.EMR_CLUSTER_ID, /* argv 인자값(분석처리할 news_id) */ );
+				//await emr_adapter.addJobFlowStepsPromise(process.env.EMR_CLUSTER_ID, /* argv 인자값(분석처리할 news_id) */ );
+				console.log('spark-analysis에서 news_id가', msg.content.toString(), '인 news를 받음!');
 			} catch (err) {
 				console.log('an error occured while submitting a job to spark after consuming: ' + String(err));
 			}

@@ -32,7 +32,7 @@ exports.insert_news_promise = function(news) {
 			} else {
 				// saved_news는 Mongo Document 객체임. 그래서 delete 연산자로 내부 값을 지울 수 없음. 유의
 				// MongoDB에서 처리되었을 때는 값이 약간 변경됨 유의
-				console.log('mongo_saved_news=', saved_news);
+				//console.log('mongo_saved_news=', saved_news);
 				resolve(saved_news._id); // saved_news를 사용하지 말고 get_news_by_id_promise로 가져와서 사옹할 것
 			}
 		})

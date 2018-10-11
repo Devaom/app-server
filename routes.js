@@ -199,9 +199,13 @@ exports.post_news = async function(req, res) {
 
 	try {
 		var mongo_saved_news_id = await mongo_adapter.insert_news_promise(news);
+		if(mongo_saved_news_id) console.log('mongo_saved_news_id=', mongo_saved_news_id);
 		//var mongo_saved_news = await mongo_adapter.insertNewsToMongoPromise(news);
 		//delete mongo_saved_news.__v;
+		
 		var queue_success = await mq_adapter.publish_queue_promise('es-index', mongo_saved_news_id);
+		console.log('\'es-index\' queue 성공=', queue_success);
+
 		return res.json({
 			mongo_saved_news_id: mongo_saved_news_id
 		});
@@ -211,6 +215,8 @@ exports.post_news = async function(req, res) {
 			error: error
 		});
 	}
+
+
 };
 
 /**
@@ -229,7 +235,7 @@ exports.post_news = async function(req, res) {
  *           required: true
  *           schema:
  *             type: string
- *           default: 1
+ *           default: 5bbe7dd0fd3e5a589f872b14
  *       responses:
  *         200:
  *           description: OK
@@ -292,6 +298,13 @@ exports.get_news_by_id = async function(req, res) {
  *           schema:
  *             type: string
  *           default: 10
+ *         - name: last_news_id
+ *           in: query
+ *           description: 지난 마지막 뉴스 ID
+ *           required: false
+ *           schema:
+ *             type: string
+ *           default: 5bbe7dd0fd3e5a589f872b14
  *       responses:
  *         200:
  *           description: OK
@@ -335,16 +348,12 @@ exports.get_news_by_query = async function(req, res) {
 	});
 	*/
 
-	try {
-		var max_length = parseInt(req.query.max_length);
-	} catch (error) {
-		console.log('typing err');
-	}
+	var max_length = parseInt(req.query.max_length);
+	var last_news_id = req.query.last_news_id;
 	console.log('max_length=', max_length);
 
-
 	try {
-		var test_result = await es_adapter.get_news_latest(String(max_length));
+		var test_result = await es_adapter.get_news_latest(String(max_length), last_news_id);
 		console.log('Successfully tested!:', test_result);
 		return res.json({
 			result: test_result

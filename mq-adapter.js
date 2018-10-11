@@ -1,27 +1,56 @@
 require('dotenv').config();
 var amqp = require('amqplib/callback_api');
+var RABBITMQ_AMQP_DOMAIN = process.env.RABBITMQ_AMQP_DOMAIN;
 
+/*
 exports.publish_queue_promise = function(queue, value) {
+	console.log('publish_queue_promise 진입');
 	return new Promise(function(resolve, reject) {
+		console.log('Promise 실행!');
 		amqp.connect(process.env.RABBITMQ_AMQP_DOMAIN, function(error, conn) {
+			console.log('amqp.connect 진입!');
 			if(error) {
 				console.log("An error occured while publishing to '" + queue + "' queue: " + String(error));
 				reject(error);
 			} 
 
-			conn.createChannel(function(error, channel) {
+			conn.createChannel(async function(error, channel) {
 				if(error) {
 					console.log('An error occured while creating channel: ' + String(error));
 					reject(false);
 				} else {
 					var buffered_value = new Buffer(String(value)); // Queue에 전송시 Buffer로 보내야 하므로
-					var success = channel.sendToQueue(queue, buffered_value);
+					var success = await channel.sendToQueue(queue, buffered_value);
+					console.log('Successfully sent to queue:', success);
 					resolve(success);
 				}
 			});
 		})
 	})
 }
+*/
+
+exports.publish_queue_promise = function(queue_name, value) {
+	return new Promise(function(resolve, reject) {
+		amqp.connect(RABBITMQ_AMQP_DOMAIN, function(conn_err, conn) {
+			if(conn_err) {
+				reject(conn_err);
+			}
+
+			conn.createChannel(async function(channel_err, channel) {
+				if(channel_err) {
+					reject(channel_err);
+				}
+
+				var buffered_value = new Buffer(String(value));
+				var success = await channel.sendToQueue(queue_name, buffered_value);
+				resolve(success);
+			});
+		})
+	});
+}
+
+
 
 //exports.publishQueuePromise = publishQueuePromise;
 
