@@ -45,8 +45,11 @@ exports.publish_queue_promise = function(queue_name, value) {
 
 				var buffered_value = new Buffer(String(value));
 				var success = await channel.sendToQueue(queue_name, buffered_value);
-				conn.close(); // 안닫으면 나중에 터짐 ㅜㅜ
-				resolve(success);
+				//conn.close(); // 여기서 close하면 실제로 큐에 값이 안들어가버리더라..;
+				setTimeout(function() {
+					conn.close();
+				}, 5000);
+				resolve(true);
 			});
 		})
 	});

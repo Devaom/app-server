@@ -23,6 +23,7 @@ amqp.connect(process.env.RABBITMQ_AMQP_DOMAIN, function(err, conn) {
 		// es-index queue에서 news의 id 가져오고,
 		// MongoDB에서 해당 News 가져와서 indexing
 		ch.consume('es-index', async function(msg) {
+			console.log('es-index에서 값 확인! 가져오는중..');
 			try {
 				// MongoDB에서 news_id를 기준으로 News를 가져오기
 				var news_id = msg.content.toString();
