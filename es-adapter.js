@@ -89,27 +89,19 @@ exports.get_news_latest = function(max_length, last_news_id) {
 		var last_news_time = await get_news_time(last_news_id);
 		console.log('last_news_time=', last_news_time);
 
-		// news_id에 해당하는 time을 가져와야 함
 		request.body = JSON.stringify({
-			_source: ["time"], // 요 필드만 가져올거임
 			query: {
-				match: {
-					_id: last_news_id
+				range: {
+					time: {
+						gt: last_news_time
+					}
 				}
 			},
+			sort: [
+				{ time: { order: 'asc' } }
+			],
 			size: max_length
 		});
-		
-		/*
-		request.body = JSON.stringify({
-			query: {
-				match_all: {}
-			},
-			sort: [
-				{ time: { order: 'desc' } }
-			]
-		});
-		*/
 
 		request.headers['host'] = ES_DOMAIN_V2;
 		request.headers['Content-Type'] = 'application/json';
@@ -123,13 +115,25 @@ exports.get_news_latest = function(max_length, last_news_id) {
 
 			response.on('end', function() {
 				response_body = JSON.parse(response_body);
-				resolve(response_body);
+				resolve(convert_standard(response_body));
 			});
-
 		}, function(error) {
 			reject(error);
 		});
 	});
+}
+
+// es 응답 형식을 우리 프로젝트 응답형식으로 변환하기
+function convert_standard(es_response){
+	var documents = es_response.hits.hits;
+	var converted = [];
+
+	documents.forEach(function(document) {
+		document._source._id = document._id;
+		converted.push(document._source);
+	});
+
+	return converted;
 }
 
 function get_news_time(news_id) {
