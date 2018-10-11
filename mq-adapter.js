@@ -34,6 +34,7 @@ exports.publish_queue_promise = function(queue_name, value) {
 	return new Promise(function(resolve, reject) {
 		amqp.connect(RABBITMQ_AMQP_DOMAIN, function(conn_err, conn) {
 			if(conn_err) {
+				conn.close();
 				reject(conn_err);
 			}
 
