@@ -225,7 +225,7 @@ exports.post_news = async function(req, res) {
  *   /news/{news_id}:
  *     get:
  *       tags: [News]
- *       summary: (in developing) get a news.
+ *       summary: get a news.
  *       description: get a news~!
  *       consume: application/json
  *       parameters:
@@ -286,11 +286,11 @@ exports.get_news_by_id = async function(req, res) {
  *       parameters:
  *         - name: type
  *           in: query
- *           description: latest = 최신순 * 현재는 latest만 지원하는게 함정
+ *           description: latest=최신순(미지원), greater_than=last_news_id 바로 다음 뉴스부터 검색
  *           required: true
  *           schema:
  *             type: string
- *           default: latest
+ *           default: greater_than
  *         - name: max_length
  *           in: query
  *           description: 가져올 뉴스 갯수
@@ -348,6 +348,16 @@ exports.get_news_by_query = async function(req, res) {
 	});
 	*/
 
+	var type = req.query.type;
+	if(type == 'latest')
+		return res.json({
+			error: '지원하지 않아요'
+		});
+	else if(type != 'greater_than')
+		return res.json({
+			error: '그런 type은 없어요'
+		});
+
 	var max_length = parseInt(req.query.max_length);
 	var last_news_id = req.query.last_news_id;
 	console.log('max_length=', max_length);
@@ -364,7 +374,6 @@ exports.get_news_by_query = async function(req, res) {
 			error: error
 		});
 	}
-
 
 	/*
 	try {
