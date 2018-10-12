@@ -120,22 +120,6 @@ var es_adapter = require('./es-adapter');
  *         example: { "extra1": "엑스트라1", "extra2": "엑스트라2"}
 */
 
-
-/*
-{
-    "event_name": "테스트이벤트명",
-    "event_content": "이벤트내용",
-    "event_time": "2018.12.25 12:12:12",
-    "related_news_list": [1, 3, 223],
-    "incidents": ["ada", "dasdaw"],
-    "links": ["ada", "dasdaw"],
-    "extra_fields": {
-    	"extra1": "엑스트라1",
-    	"extra2": "엑스트라2"
-    }
-}
-*/
-
 /**
  * @swagger
  * tags:
@@ -145,18 +129,6 @@ var es_adapter = require('./es-adapter');
  *    description: User & Device information
  *  - name: StockEvents
  *    description: Stock Event
-*/
-
-/**
- * @swagger
- * paths:
- *   /news/{news_id}:
- *     put:
- *       tags: [News]
- *       summary: (in developing) update a news
- *     delete:
- *       tags: [News]
- *       summary: (in developing) delete a news
 */
 
 /**
@@ -199,8 +171,6 @@ exports.post_news = async function(req, res) {
 	try {
 		var mongo_saved_news_id = await mongo_adapter.insert_news_promise(news);
 		if(mongo_saved_news_id) console.log('mongo_saved_news_id=', mongo_saved_news_id);
-		//var mongo_saved_news = await mongo_adapter.insertNewsToMongoPromise(news);
-		//delete mongo_saved_news.__v;
 		
 		var queue_success = await mq_adapter.publish_queue_promise('es-index', mongo_saved_news_id);
 		console.log('\'es-index\' queue 성공=', queue_success);
@@ -252,23 +222,6 @@ exports.get_news_by_id = async function(req, res) {
 			error: error
 		});
 	}
-
-	/*
-	var result = 'fail';
-	try {
-		result = await new Promise(function(resolve, reject) {
-			resolve('success');
-		})
-	} catch(error) {
-		result = error;
-	}
-
-	return res.json({
-		result: result,
-		req_params: req.params,
-		req_query: req.query
-	});
-	*/
 };
 
 /**
@@ -310,41 +263,6 @@ exports.get_news_by_id = async function(req, res) {
  *             application/json:
  */
 exports.get_news_by_query = async function(req, res) {
-	/*
-	return res.json({
-		results: [
-			{
-				article_id: 'abcdefg',
-				article_url: 'abcdefg',
-				redirect_url: 'abcdefg',
-				origin_url: 'abcdefg',
-				title: 'abcdefg',
-				body_html:'abcdefg',
-				time: '2012.03.03 12:12',
-				provider: '경향신문',
-				reporter: null,
-				category: null,
-				relatedStocks: [1,2,3],
-				_id: 'agawwagg1'
-			},
-			{
-				article_id: 'abcdefg',
-				article_url: 'abcdefg',
-				redirect_url: 'abcdefg',
-				origin_url: 'abcdefg',
-				title: 'abcdefg',
-				body_html: 'abcdefg',
-				time: '2012.03.03 12:12',
-				provider: '경향신문',
-				reporter: null,
-				category: null,
-				relatedStocks: [1,2,3],
-				_id: 'agawwagg2'
-			}
-		]
-	});
-	*/
-
 	var type = req.query.type;
 	if(type == 'latest')
 		return res.json({
@@ -376,21 +294,6 @@ exports.get_news_by_query = async function(req, res) {
 			error: error.name + ' : ' + error.message
 		});
 	}
-
-	/*
-	try {
-		var result = await mongo_adapter.get_news_latest(max_length);
-		return res.json({
-			result: result
-		});
-
-	} catch(error) {
-		console.log('An error occured while getting news by query:', error);
-		return res.json({
-			error: error
-		});
-	}
-	*/
 }
 
 /**
@@ -570,18 +473,12 @@ exports.update_user_device_token = async function(req, res) {
  *       description: creating stock event
  *       consume: application/json
  *       parameters:
- *         - name:
- *           in:
- *           description:
- *           required: 
- *           schema:
- *             type: string
- *           default:
  *         - name: body
  *           in: body
- *           description: 
- *           required:
- *           example:
+ *           description:
+ *           required: true
+ *           schema:
+ *             $ref: '#/definitions/StockEvents'
  *       responses:
  *         200:
  *           description: OK
@@ -630,10 +527,9 @@ exports.create_stock_event = async function(req, res) {
 exports.update_stock_event_extra_fields = async function(req, res) {
 	var modify_extra_fields = req.body;
 	var stock_event_id = req.params.stock_event_id;
-	//var result = await mysql_adapter.update_stock_event_extra_fields(stock_event_id, modify_extra_fields);
+	var updated_stock_event_count = await mysql_adapter.update_stock_event_extra_fields(stock_event_id, modify_extra_fields);
 	var result = {
-		stock_event_id: stock_event_id,
-		body: modify_extra_fields
+		updated_stock_event_count: updated_stock_event_count
 	}
 	return res.json(result);
 }
@@ -727,19 +623,46 @@ exports.get_stock_event_by_query = async function(req, res) {
 	}
 }
 
-
 /**
  * @swagger
  * paths:
  *   /stock_events/{stock_event_id}:
  *     delete:
  *       tags: [StockEvents]
+ *       parameters:
+ *         - name: stock_event_id
+ *           in: path
+ *           description:
+ *           required: true
+ *           schema:
+ *             type: string
+ *           default: default_news_id
+ *       responses:
+ *         200:
+ *           description: OK
+ *           schema:
+ *           content:
+ *             application/json:
  */
+exports.delete_stock_event_by_id = async function(req, res){
+	var stock_event_id = req.params.stock_event_id;
+	var deleted_stock_count = await mysql_adapter.delete_stock_event_by_id(stock_event_id);
+	return res.json({
+		deleted_stock_count: deleted_stock_count		
+	});
+}
+
+/*
 exports.delete_stock_events = async function(req, res) {
 	var stock_event_id = req.params.stock_event_id;
-	var result = await mysql_adapter.delete_stock_events(stock_event_id);
+	var deleted_stock_count = await mysql_adapter.delete_stock_events(stock_event_id);
+	
+	var result = {
+		deleted_stock_count: deleted_stock_count
+	}
 	return res.json(result);
 }
+*/
 
 
 
@@ -1057,6 +980,7 @@ exports.postNews = function(req, res){
 
 /////////////////// 요 아래는 나중에 필드값 수정 필요! ////////
 
+/*
 exports.putNews = function(req, res){
 	News.findById(req.params.news_id, function(err, news){
 		if(err) return res.status(500).json({ error: 'database failure' });
@@ -1106,3 +1030,4 @@ exports.deleteNewsById = function(req, res){
 		return res.json({ message: "news deleted", output: output });
 	});
 }
+*/

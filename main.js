@@ -156,7 +156,7 @@ app.get('/stock_events', function(req, res) {
 });
 
 app.delete('/stock_events/:stock_event_id', function(req, res) {
-	routes.delete_stock_events(req, res);
+	routes.delete_stock_event_by_id(req, res);
 });
 
 // deprecated

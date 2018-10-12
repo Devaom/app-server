@@ -158,24 +158,6 @@ async function insert_stock_event(stock_event) {
 		return error;
 	}
 }
-
-async function find_all(table_name) {
-	try {
-		if(table_name == 'Users') {
-			var results = await Users.findAll();
-		} else if(table_name == 'StockEvents') {
-			var results = await StockEvents.findAll();
-		} else {
-			return '잘못된 테이블명임..';
-		}
-		//console.log('Successfully found', table_name, ':', results);
-		return results;
-	} catch(error) {
-		console.log('An error occured while finding:', error);
-		return error;
-	}
-}
-
 exports.get_stock_event_by_id = async function(stock_event_id) {
 	var result = await StockEvents.findOne({
 		where: { id: stock_event_id }
@@ -233,6 +215,27 @@ exports.get_stock_event_by_query = async function(query_type, query_date, max_le
 
 	return result;
 }
+
+
+
+async function find_all(table_name) {
+	try {
+		if(table_name == 'Users') {
+			var results = await Users.findAll();
+		} else if(table_name == 'StockEvents') {
+			var results = await StockEvents.findAll();
+		} else {
+			return '잘못된 테이블명임..';
+		}
+		//console.log('Successfully found', table_name, ':', results);
+		return results;
+	} catch(error) {
+		console.log('An error occured while finding:', error);
+		return error;
+	}
+}
+
+
 
 /*
 async function select_stock_events(stock_event_id, query_date) {
@@ -296,6 +299,13 @@ async function select_stock_events(stock_event_id, query_date) {
 }
 */
 
+exports.delete_stock_event_by_id = async function(stock_event_id){
+	var deleted_stock_event_count = await StockEvents.destroy({
+		where: { id: stock_event_id }
+	});
+	return deleted_stock_event_count;
+}
+
 async function delete_stock_events(stock_event_id) {
 	try {
 		if(stock_event_id == 'all') {
@@ -315,12 +325,12 @@ async function delete_stock_events(stock_event_id) {
 
 async function update_stock_event_extra_fields(id, modify_extra_fields){
 	try {
-		var results = await StockEvents.update({
+		var updated_stock_event_count = await StockEvents.update({
 			extra_fields: modify_extra_fields
 		}, {
 			where: { id: id }
 		});
-		return results;
+		return updated_stock_event_count[0];
 
 	} catch (error) {
 		console.log('An error occured while updating extra fields:', error);
