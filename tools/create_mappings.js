@@ -27,7 +27,7 @@ function create_mappings(settings_and_mappings) {
 			});
 			response.on('end', function() {
 				//resolve(JSON.parse(response_body));
-				return JSON.parse(response_body);
+				resolve(JSON.parse(response_body));
 			});
 		}, function(error) {
 			reject(error);
@@ -83,12 +83,12 @@ var settings_and_mappings = {
     }
 };
 
-exports.start = async function() {
+async function main() {
 	try {
-		var result = await create_mappings(settings_and_mappings);
-		return result;
+		console.log(await create_mappings(settings_and_mappings));
 	} catch (error) {
 		console.log('an error occured:', error);
-		return error;
 	}
 }
+
+main();

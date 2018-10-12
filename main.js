@@ -143,12 +143,16 @@ app.post('/stock_events', function(req, res) {
 	routes.create_stock_event(req, res);
 });
 
-app.put('/stock_events/:stock_event_id', function(req, res) {
+app.put('/stock_events/:stock_event_id/extra_fields', function(req, res) {
 	routes.update_stock_event_extra_fields(req, res);
 });
 
 app.get('/stock_events/:stock_event_id', function(req, res) {
-	routes.get_stock_events(req, res);
+	routes.get_stock_event_by_id(req, res);
+});
+
+app.get('/stock_events', function(req, res) {
+	routes.get_stock_event_by_query(req, res);
 });
 
 app.delete('/stock_events/:stock_event_id', function(req, res) {

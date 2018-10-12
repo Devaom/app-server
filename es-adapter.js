@@ -87,7 +87,12 @@ exports.get_news_latest = function(max_length, last_news_id) {
 		//request.path += process.env.ES_INDEX + '/_search';
 
 		var last_news_time = await get_news_time(last_news_id);
+		if(last_news_time == -1) {
+			resolve(-1);
+		}
 		console.log('last_news_time=', last_news_time);
+
+		//last_news_time = '1990-01-01';
 
 		request.body = JSON.stringify({
 			query: {
@@ -178,9 +183,14 @@ function get_news_time(news_id) {
 
 			response.on('end', function() {
 				response_body = JSON.parse(response_body);
+				console.log('time을 찾기위한:', response_body);
+				if(response_body.hits.hits.length == 0) {
+					console.log('news_id=', news_id, '에 해당하는 news가 존재하지 않음');
+					return resolve(-1);
+				}
 				var time = response_body.hits.hits[0]._source.time;
 				//time = new Date(time); // 이걸 지우면 그냥 es에 적재된 포맷 그대로
-				resolve(time);
+				return resolve(time);
 			});
 
 		}, function(error) {

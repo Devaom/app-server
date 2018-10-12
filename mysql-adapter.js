@@ -176,6 +176,65 @@ async function find_all(table_name) {
 	}
 }
 
+exports.get_stock_event_by_id = async function(stock_event_id) {
+	var result = await StockEvents.findOne({
+		where: { id: stock_event_id }
+	});
+	return result;
+}
+
+exports.get_stock_event_by_query = async function(query_type, query_date, max_length) {
+	if(query_type == 'all') {
+		var result = await StockEvents.findAll();
+
+	} else if(query_type == 'daily') {
+		console.log('daily 호출!');
+		var dt = new Date(query_date);
+		var dt_first = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), 0);
+		var dt_last = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), 23, 59, 59);
+		console.log(dt_first, dt_last);
+
+		var result = await StockEvents.findAll({
+			where: { 
+				event_time: {
+					[Op.between]: [dt_first, dt_last]
+				}
+			}
+		});
+
+	} else if(query_type == 'weekly') {
+		var dt = new Date(query_date);	
+		dt.setDate(dt.getDate() - dt.getDay()); // 주의 첫번째 날로 설정
+		var dt_first = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), 0);
+		dt.setDate(dt.getDate() + 6);
+		var dt_last = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), 23, 59, 59);
+		var result = await StockEvents.findAll({
+			where: {
+				event_time: {
+					[Op.between]: [dt_first, dt_last]
+				}
+			}
+		});
+
+	} else if(query_type == 'monthly') {
+		console.log('monthly 호출');
+		var dt = new Date(query_date);
+		console.log('dt = ', dt.toFormat('YYYY-MM-DD'));
+		var dt_first = new Date(dt.getFullYear(), dt.getMonth(), 1); // 이번달의 초
+		var dt_last = new Date(dt_first.getFullYear(), dt_first.getMonth() + 1, 0); // 다음 달로 넘어가서 -1 일
+		var result = await StockEvents.findAll({
+			where: {
+				event_time: {
+					[Op.between]: [dt_first, dt_last]
+				}
+			}
+		});
+	}
+
+	return result;
+}
+
+/*
 async function select_stock_events(stock_event_id, query_date) {
 	try {
 		if(stock_event_id == 'all') {
@@ -235,6 +294,7 @@ async function select_stock_events(stock_event_id, query_date) {
 		return error;
 	}
 }
+*/
 
 async function delete_stock_events(stock_event_id) {
 	try {
@@ -322,5 +382,5 @@ exports.insert_stock_event = insert_stock_event;
 exports.find_all = find_all;
 exports.update_user_device_token = update_user_device_token;
 exports.update_stock_event_extra_fields = update_stock_event_extra_fields;
-exports.select_stock_events = select_stock_events;
+//exports.select_stock_events = select_stock_events;
 exports.delete_stock_events = delete_stock_events;

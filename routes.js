@@ -14,7 +14,6 @@ var es_adapter = require('./es-adapter');
 
 // YAML 문법에 관한 샘플 https://gongzza.github.io/javascript/nodejs/swagger-node-express/ 참고하였음
 
-
 /**
  * @swagger
  * definitions:
@@ -151,7 +150,7 @@ var es_adapter = require('./es-adapter');
 /**
  * @swagger
  * paths:
- *   /news:
+ *   /news/{news_id}:
  *     put:
  *       tags: [News]
  *       summary: (in developing) update a news
@@ -215,8 +214,6 @@ exports.post_news = async function(req, res) {
 			error: error
 		});
 	}
-
-
 };
 
 /**
@@ -304,7 +301,7 @@ exports.get_news_by_id = async function(req, res) {
  *           required: false
  *           schema:
  *             type: string
- *           default: 5bbe7dd0fd3e5a589f872b14
+ *           default: 5bc094100ab3836eaceac457
  *       responses:
  *         200:
  *           description: OK
@@ -363,15 +360,20 @@ exports.get_news_by_query = async function(req, res) {
 	console.log('max_length=', max_length);
 
 	try {
-		var test_result = await es_adapter.get_news_latest(String(max_length), last_news_id);
-		console.log('Successfully tested!:', test_result);
+		var result = await es_adapter.get_news_latest(String(max_length), last_news_id);
+		console.log('result=', result);
+		if(result == -1)
+			return res.json({
+				error: '존재하지 않는 news_id'
+			});
+		console.log('Successfully getting news!:', result);
 		return res.json({
-			result: test_result
+			result: result
 		});
 	} catch(error) {
 		console.log('An error occured while test-retrieving..:', error);
 		return res.json({
-			error: error
+			error: error.name + ' : ' + error.message
 		});
 	}
 
@@ -493,7 +495,7 @@ exports.get_user_by_id = async function(req, res) {
  *       parameters:
  *         - name: type
  *           in: query
- *           description: specify query type. (all = all users) * 현재는 all만 지원하는게 함정
+ *           description: all=모든 user 검색 * 현재는 all만 지원하는게 함정
  *           required: true
  *           schema:
  *             type: string
@@ -564,6 +566,28 @@ exports.update_user_device_token = async function(req, res) {
  *   /stock_events:
  *     post:
  *       tags: [StockEvents]
+ *       summary: creating stock event
+ *       description: creating stock event
+ *       consume: application/json
+ *       parameters:
+ *         - name:
+ *           in:
+ *           description:
+ *           required: 
+ *           schema:
+ *             type: string
+ *           default:
+ *         - name: body
+ *           in: body
+ *           description: 
+ *           required:
+ *           example:
+ *       responses:
+ *         200:
+ *           description: OK
+ *           schema:
+ *           content:
+ *             application/json:
  */
 exports.create_stock_event = async function(req, res) {
 	var stock_event = req.body;
@@ -574,14 +598,43 @@ exports.create_stock_event = async function(req, res) {
 /**
  * @swagger
  * paths:
- *   /stock_events/{stock_event_id}:
+ *   /stock_events/{stock_event_id}/extra_fields:
  *     put:
  *       tags: [StockEvents]
+ *       summary: stock event의 extra_fields 필드 수정을 위한 API
+ *       description: stock event의 extra fields 필드 수정을 위한 API
+ *       consume: application/json
+ *       parameters:
+ *         - name: stock_event_id
+ *           in: path
+ *           description: stock event id
+ *           required: true
+ *           schema:
+ *             type: string
+ *           default: default_stock_event_id
+ *         - name: body
+ *           in: body
+ *           description: 수정할 extra_fields
+ *           required: true
+ *           example:
+ *             extra_fields: 
+ *               extra_test1: 엑스트라 테스트1
+ *               extra_test2: 엑스트라 테스트2
+ *       responses:
+ *         200:
+ *           description: OK
+ *           schema:
+ *           content:
+ *             application/json:
  */
 exports.update_stock_event_extra_fields = async function(req, res) {
 	var modify_extra_fields = req.body;
 	var stock_event_id = req.params.stock_event_id;
-	var result = await mysql_adapter.update_stock_event_extra_fields(stock_event_id, modify_extra_fields);
+	//var result = await mysql_adapter.update_stock_event_extra_fields(stock_event_id, modify_extra_fields);
+	var result = {
+		stock_event_id: stock_event_id,
+		body: modify_extra_fields
+	}
 	return res.json(result);
 }
 
@@ -591,13 +644,89 @@ exports.update_stock_event_extra_fields = async function(req, res) {
  *   /stock_events/{stock_event_id}:
  *     get:
  *       tags: [StockEvents]
+ *       summary: getting an stock event by id.
+ *       description: getting an stock event by id.
+ *       consume: application/json
+ *       parameters:
+ *         - name: stock_event_id
+ *           in: path
+ *           description: stock event id
+ *           required: true
+ *           schema:
+ *             type: string
+ *           default: default_stock_event_id
+ *       responses:
+ *         200:
+ *           description: OK
+ *           schema:
+ *           content:
+ *             application/json:
  */
-exports.get_stock_events = async function(req, res) {
+exports.get_stock_event_by_id = async function(req, res) {
 	var stock_event_id = req.params.stock_event_id;
-	var query_date = req.query.query_date;
-	var result = await mysql_adapter.select_stock_events(stock_event_id, query_date);
+	var result = await mysql_adapter.get_stock_event_by_id(stock_event_id);
 	return res.json(result);
 }
+
+/**
+ * @swagger
+ * paths:
+ *   /stock_events:
+ *     get:
+ *       tags: [StockEvents]
+ *       summary: getting stock events by query.
+ *       description: getting stock events by query.
+ *       consume: application/json
+ *       parameters:
+ *         - name: type
+ *           in: query
+ *           description: all=모든 stock event 검색, daily=일별, weekly=주별, monthly=월별
+ *           required: true
+ *           schema:
+ *             type: string
+ *           default: daily
+ *         - name: query_date
+ *           in: query
+ *           description: type=daily, weekly, monthly 일 때, 검색할 날자를 지정
+ *           required: false
+ *           schema:
+ *             type: string
+ *           default: '2017-10-01'
+ *         - name: max_length
+ *           in: query
+ *           description: (사용X) max length
+ *           required: false
+ *           schema:
+ *             type: string
+ *           default: 10
+ *       responses:
+ *         200:
+ *           description: OK
+ *           schema:
+ *           content:
+ *             application/json:
+ */
+exports.get_stock_event_by_query = async function(req, res) {
+	var query_type = req.query.type;
+	var query_date = req.query.query_date;
+	var max_length = req.query.max_length;
+	if(query_type != 'all' && query_type != 'daily' && query_type != 'weekly' && query_type != 'monthly')
+		return res.json({
+			error: 'all type만 지원함'
+		});
+
+	try {
+		var result = await mysql_adapter.get_stock_event_by_query(query_type, query_date, max_length);
+		console.log('result=', result);
+		return res.json(result);
+
+	} catch(error) {
+		return res.json({
+			error: error.name + ' : ' + error.message
+		});
+	}
+}
+
 
 /**
  * @swagger
@@ -611,7 +740,6 @@ exports.delete_stock_events = async function(req, res) {
 	var result = await mysql_adapter.delete_stock_events(stock_event_id);
 	return res.json(result);
 }
-
 
 
 
@@ -640,6 +768,7 @@ app.put('/register_token/:firebase_uid', function(req, res) {
 });
 */
 
+/*
 exports.register_token2 = async function(req, res) {
 	// firebase_uid를 날릴 수 있다고 하는데..
 	// 날릴때, deviceToken값과 같은지 확인할 것.
@@ -693,6 +822,8 @@ exports.register_token = async function(req, res) {
 		});
 	}
 }
+*/
+
 /*
 app.post('/user', function(req, res) {
 	// user 신규 등록
